@@ -1,0 +1,18 @@
+- camera:
+   position: {x: -10, y: 0, z: 10}
+   orientation: {h: 0, p: 45, r: 0}
+   fov_x: 120
+   fov_y: 110
+
+- light:
+     point: {x: 10, y: 5, z: -15}, (255, 210, 220)
+     point: {x: 0, y: -1, z: 10}, (155, 210, 220)
+	 
+- node:	 
+   - lcs: {x: 0, y: 0, z: 0, h: 0, p: 0, r: 0, sx: 1, sy: 1, sz: 1}
+   - cylinder: 
+     radius: 1.2
+     height: 3
+     color: (25, 220, 90)
+     reflection: no
+     refraction: 0.0
