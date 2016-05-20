@@ -229,40 +229,6 @@ bool Cylinder::findIntersection(Ray ray, Vector3D* _point, Vector3D* _norm, bool
 	float		t0, t1;
 	bool		result1 = true, result2 = true;
 
-	if (fabs(ray.direction.z) > EPS)
-	{
-		result1 = findDiskIntersection(ray, height / 2, &interPoint1, &interNorm1);
-		result2 = findDiskIntersection(ray, -height / 2, &interPoint2, &interNorm2);
-
-		if (result1 && result2)
-		{
-			float dist1 = dist(ray.start, interPoint1);
-			float dist2 = dist(ray.start, interPoint2);
-
-			if (dist1 < dist2 && findClosest || dist2 > dist1 && !findClosest)
-			{
-				*_point = interPoint1;
-				*_norm = interNorm1;
-			}
-			else
-			{
-				*_point = interPoint2;
-				*_norm = interNorm2;
-			}
-			return true;
-		}
-		else if (result1 && !result2)
-		{
-			*_point = interPoint1;
-			*_norm = interNorm1;
-		}
-		else if (result2 && !result1)
-		{
-			*_point = interPoint2;
-			*_norm = interNorm2;
-		}
-	}
-
 	float a = ray.direction.x * ray.direction.x + ray.direction.y * ray.direction.y;
 	float b = 2.0f * (ray.start.x * ray.direction.x + ray.start.y * ray.direction.y);
 	float c = ray.start.x * ray.start.x + ray.start.y * ray.start.y - radius * radius; 
@@ -271,72 +237,100 @@ bool Cylinder::findIntersection(Ray ray, Vector3D* _point, Vector3D* _norm, bool
 
 	if (roots.size() == 0)
 		return false;
+
 	if (roots.size() == 1)
 	{
 		t0 = roots.front();
 		if (t0 < EPS)
-		{
-			if (result1 || result2)
-				return true;
 			return false;
-		}
+
 		interPoint = sum(ray.start, (ray.direction).multiplyNumber(t0));
 
-		if (fabs(interPoint.z) < height)
+		if (fabs(interPoint.z) <= height / 2)
 		{
-			if (result1 || result2)
+			*_point = interPoint;
+			*_norm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
+		}
+		else
+		{
+			result1 = findDiskIntersection(ray, height / 2, &interPoint1, &interNorm1);
+			result2 = findDiskIntersection(ray, -height / 2, &interPoint2, &interNorm2);
+
+			if (result1 && !result2)
 			{
-				float dist1 = dist(ray.start, interPoint);
-				float dist2 = dist(ray.start, *_point);
-				if (dist1 < dist2)
-				{
-					*_point = interPoint;
-					*_norm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
-				}
+				*_point = interPoint1;
+				*_norm = interNorm1;
+			}
+			else if (result2 && !result1)
+			{
+				*_point = interPoint2;
+				*_norm = interNorm2;
 			}
 			else
-			{
-				*_point = interPoint;
-				*_norm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
-			}
+				return false;
 		}
 	}
-	else if (roots.size() == 2)
+
+	if (roots.size() == 2)
 	{
 		t0 = roots.front();
 		t1 = roots.back();
-		if (t0 < EPS)
-			t0 = t1;
-		if (t1 < EPS)
-		{
-			if (result1 || result2)
-				return true;
-			return false;
-		}
 
-		if (t0 < t1 && findClosest || t0 > t1 && !findClosest)
+		if (t0 < EPS && t1 < EPS)
+			return false;
+
+		if (t0 > t1 && findClosest || t0 < t1 && !findClosest)
 			interPoint = sum(ray.start, (ray.direction).multiplyNumber(t0));
 		else
 			interPoint = sum(ray.start, (ray.direction).multiplyNumber(t1));
 
-		if (fabs(interPoint.z) < height)
+		interNorm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
+
+		bool flag = false;
+		if (fabs(interPoint.z) > height / 2)
 		{
-			if (result1 || result2)
+			result1 = findDiskIntersection(ray, height / 2, &interPoint1, &interNorm1);
+			result2 = findDiskIntersection(ray, -height / 2, &interPoint2, &interNorm2);
+
+			if (result1 && !result2)
 			{
-				float dist1 = dist(ray.start, interPoint);
-				float dist2 = dist(ray.start, *_point);
+				*_point = interPoint1;
+				*_norm = interNorm1;
+			}
+			else if (result2 && !result1)
+			{
+				*_point = interPoint2;
+				*_norm = interNorm2;
+			}
+			else if (result1 && result2)
+			{
+				float dist1 = dist(ray.start, interPoint1);
+				float dist2 = dist(ray.start, interPoint2);
 				if (dist1 < dist2)
 				{
-					*_point = interPoint;
-					*_norm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
+					*_point = interPoint1;
+					*_norm = interNorm1;
 				}
+				else
+				{
+					*_point = interPoint2;
+					*_norm = interNorm2;
+				}
+				return true;
 			}
 			else
-			{
-				*_point = interPoint;
-				*_norm = Vector3D(interPoint.x, interPoint.y, 0.0f).normalize();
-			}
+				flag = true;
 		}
+
+		float dist1 = dist(ray.start, *_point);
+		float dist2 = dist(ray.start, interPoint);
+
+		if (dist2 > dist1 && !flag)
+		{
+			*_point = interPoint;
+			*_norm = interNorm;
+		}
+
 	}
 
 	return true;
